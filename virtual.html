@@ -1,0 +1,43 @@
+<div id="app">
+
+</div>
+
+<script>
+    function h(tag, props, children) {
+        return {
+            tag,
+            props,
+            children
+        }
+    }
+
+    function mount(vNode, container) {
+        const el = document.createElement(vNode.tag)
+
+        if (vNode.props) {
+            for (const key in vNode.props) {
+                const val = vNode.props[key]
+                el.setAttribute(key, val)
+            }
+        }
+
+        if (vNode.children) {
+            if (typeof vNode.children === 'string') {
+                el.textContent = vNode.children
+            } else {
+                vNode.children.forEach(child => {
+                    mount(child, el)
+                })
+            }
+        }
+
+        container.appendChild(el)
+    }
+
+    const virtualHtml = h('div', {class: 'text-danger', id: 'top'}, [
+        h('span', {class: 'hello'}, 'hello'),
+        h('span', {class: 'world'}, ' world')
+    ])
+
+    mount(virtualHtml, document.getElementById('app'))
+</script>
