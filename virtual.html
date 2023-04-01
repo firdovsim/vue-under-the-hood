@@ -1,3 +1,9 @@
+<style>
+    .green {
+        color: green;
+    }
+</style>
+
 <div id="app">
 
 </div>
@@ -12,7 +18,7 @@
     }
 
     function mount(vNode, container) {
-        const el = document.createElement(vNode.tag)
+        const el = vNode.el = document.createElement(vNode.tag)
 
         if (vNode.props) {
             for (const key in vNode.props) {
@@ -34,10 +40,81 @@
         container.appendChild(el)
     }
 
-    const virtualHtml = h('div', {class: 'text-danger', id: 'top'}, [
-        h('span', {class: 'hello'}, 'hello'),
-        h('span', {class: 'world'}, ' world')
+    const oldHtml = h('div', {class: 'text-red'}, [ // <div class="text-red"><span>hello</span></div>
+        h('span', null, 'hello'),
     ])
 
-    mount(virtualHtml, document.getElementById('app'))
+    const newHtml = h('div', { class: 'text-red' }, [ // <div class="text-red"><span><a href="https://google.com">Go to Google</a></span></div>
+        h('span', null, [
+            h('a', { href: 'https://google.com' }, 'Go to Google')
+        ])
+    ])
+
+    mount(oldHtml, document.getElementById('app'))
+
+    const patch = (oldVirtual, newVirtual) => { // <div class="text-red" id="loop"><span>hello</span></div> --> // <div class="text-danger"><span>changed</span></div>
+        // completely different types
+        if (oldVirtual.tag === newVirtual.tag) { // if tags is similar
+            const oldEl = newVirtual.el = oldVirtual.el // old element
+
+            // check the props
+            const oldProps = oldVirtual.props || {}
+            const newProps = newVirtual.props || {}
+
+            for (const key in newProps) {
+                const oldVal = oldProps[key] // id="text-red"
+                const newVal = newProps[key] // id="text-red"
+
+                if (oldVal !== newVal) {
+                    oldEl.setAttribute(key, newVal) // old element id="text-danger"
+                }
+            }
+            for (const key in oldProps) {
+                if (!(key in newProps)) {
+                    oldEl.removeAttribute(key)
+                }
+            }
+
+            // children
+            const oldChildren = oldVirtual.children
+            const newChildren = newVirtual.children
+
+            if (typeof newChildren === 'string') {
+                if (typeof oldChildren === 'string') {
+                    if (newChildren !== oldChildren) {
+                        oldEl.textContent = newChildren
+                    }
+                } else {
+                    oldEl.textContent = newChildren
+                }
+            } else {
+                if (typeof oldChildren === 'string') {
+                    oldEl.innerHTML = ''
+                    newChildren.forEach((child) => {
+                        mount(child, oldEl)
+                    })
+                } else {
+                    // old children and new children is Array
+                    const minLength = Math.min(oldChildren.length, newChildren.length)
+                    for (let i = 0; i < minLength; i++) {
+                        patch(oldChildren[i], newChildren[i])
+                    }
+
+                    if (newChildren.length > oldChildren.length) {
+                        newChildren.slice(oldChildren.length).forEach((child) => {
+                            mount(child, oldEl)
+                        })
+                    } else if (newChildren.length < oldChildren.length) {
+                        oldChildren.slice(newChildren.length).forEach((child) => {
+                            oldEl.removeChild(child.el)
+                        })
+                    }
+                }
+            }
+        } else { // both children are Array
+
+        }
+    }
+
+    patch(oldHtml, newHtml)
 </script>
